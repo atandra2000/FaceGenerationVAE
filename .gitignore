@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Data
+celeba-data/
+data/
+*.zip
+*.tar.gz
+
+# Checkpoints (large — tracked externally)
+checkpoints/
+*.pth
+
+# Results
+results/*.png
+results/*.jpg
+!results/.gitkeep
+!results/training_summary.md
+
+# Comet ML
+.comet.config
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# macOS
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb

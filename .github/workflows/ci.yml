@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-smoke-test:
+    name: Lint & Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install pyflakes
+
+      - name: Syntax check with pyflakes
+        run: pyflakes src/
+
+      - name: Verify imports
+        run: |
+          cd src
+          python -c "from model import VAE, build_encoder, build_decoder, vae_loss; print('model.py ✓')"
+          python -c "from utils import set_seed, AverageMeter, denorm; print('utils.py ✓')"
+          python -c "from configs.config import VAEConfig; print('configs/config.py ✓')" || \
+          python -c "import sys; sys.path.insert(0,'..'); from configs.config import VAEConfig; print('configs/config.py ✓')"
+
+      - name: Smoke test — encoder/decoder forward pass (CPU)
+        run: |
+          python - <<'EOF'
+          import sys; sys.path.insert(0, "src")
+          import torch
+          from model import VAE, vae_loss, build_encoder, build_decoder
+
+          B, C, H, W = 2, 3, 128, 128
+          n_filters  = 16   # Reduced for CPU speed
+          latent_dim = 32
+
+          # VAE forward
+          vae = VAE(in_channels=C, n_filters=n_filters, latent_dim=latent_dim)
+          x = torch.randn(B, C, H, W)
+          recon, mu, logsigma = vae(x)
+
+          assert recon.shape    == (B, C, H, W), f"Recon shape mismatch: {recon.shape}"
+          assert mu.shape       == (B, latent_dim), f"mu shape mismatch: {mu.shape}"
+          assert logsigma.shape == (B, latent_dim), f"logsigma shape mismatch"
+          assert recon.min() >= -0.01 and recon.max() <= 1.01, "Recon outside [0,1]"
+          print(f"Forward pass: {x.shape} → recon {recon.shape}  mu {mu.shape}")
+
+          # Loss
+          total, r, k = vae_loss(x.clamp(0,1), recon, mu, logsigma, beta=1.0, kl_weight=0.5)
+          assert not total.isnan(), "Loss is NaN"
+          print(f"Loss: total={total.item():.4f}  recon={r.item():.4f}  kl={k.item():.4f}")
+
+          # Sample
+          samples = vae.sample(4, device=torch.device("cpu"))
+          assert samples.shape == (4, C, H, W)
+          print(f"Sample: {samples.shape}")
+
+          # Interpolate
+          frames = vae.interpolate(x[0], x[1], steps=4)
+          assert frames.shape == (4, C, H, W)
+          print(f"Interpolate: {frames.shape}")
+
+          print(f"Parameters: {vae.num_parameters():,}")
+          print("All smoke tests passed.")
+          EOF
