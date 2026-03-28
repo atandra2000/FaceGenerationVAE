@@ -56,7 +56,7 @@ def build_encoder(in_channels: int, n_filters: int, n_outputs: int) -> nn.Sequen
         nn.Tanh(),  # bound μ and log σ to [-1, 1] for stability
     )
     # Weight initialisation
-    nn.init.kaiming_normal_(model[-3].weight, mode="fan_out", nonlinearity="leaky_relu")
+    nn.init.kaiming_normal_(model[-4].weight, mode="fan_out", nonlinearity="leaky_relu")
     nn.init.xavier_normal_(model[-2].weight)
     return model
 
