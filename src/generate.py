@@ -11,7 +11,6 @@ import argparse
 import sys
 from pathlib import Path
 
-import numpy as np
 import torch
 import torchvision.transforms as T
 from torchvision.utils import make_grid, save_image

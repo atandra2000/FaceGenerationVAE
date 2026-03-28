@@ -8,7 +8,6 @@ used in the original Kaggle training run.
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from pathlib import Path
 
 
 def build_transforms(image_size: int, augment: bool = True) -> transforms.Compose:
