@@ -55,73 +55,9 @@ Key design choices over a standard VAE:
 
 ### End-to-End Pipeline
 
-```mermaid
-flowchart LR
-    X["Input image<br/>3 × 128 × 128"]:::in
-    subgraph ENC["Encoder · 5× strided conv + linear"]
-        direction TB
-        C1["Conv2d 4×4 s2<br/>3 → 64"]:::conv
-        C2["Conv2d 4×4 s2<br/>64 → 128"]:::conv
-        C3["Conv2d 4×4 s2<br/>128 → 256"]:::conv
-        C4["Conv2d 4×4 s2<br/>256 → 512"]:::conv
-        C5["Conv2d 4×4 s2<br/>512 → 512"]:::conv
-        FC["Linear 8192 → 1024<br/>Tanh (bottleneck)"]:::fc
-        MU["μ (512)"]:::mu
-        LS["log σ (512)"]:::ls
-    end
-    subgraph REP["Reparameterization Trick"]
-        direction TB
-        R1["clamp log σ to [-10, 10]"]:::stab
-        R2["eps ~ 𝒩(0, I)"]:::noise
-        R3["z = μ + exp(log σ) · eps"]:::z
-    end
-    subgraph DEC["Decoder · Linear + 5× (Upsample bilinear + Conv2d)"]
-        direction TB
-        D0["Linear 512 → 8192<br/>reshape (512, 4, 4)"]:::fc
-        D1["Upsample ×2 · Conv2d 3×3<br/>512 → 256"]:::conv
-        D2["Upsample ×2 · Conv2d 3×3<br/>256 → 128"]:::conv
-        D3["Upsample ×2 · Conv2d 3×3<br/>128 → 64"]:::conv
-        D4["Upsample ×2 · Conv2d 3×3<br/>64 → 64"]:::conv
-        D5["Upsample ×2 · Conv2d 3×3<br/>64 → 3"]:::conv
-        OUT["Sigmoid →<br/>3 × 128 × 128 image"]:::out
-    end
-
-    X --> C1 --> C2 --> C3 --> C4 --> C5 --> FC --> MU
-    FC --> LS
-    MU --> R3
-    LS --> R1 --> R3
-    R2 --> R3
-    R3 --> D0 --> D1 --> D2 --> D3 --> D4 --> D5 --> OUT
-
-    classDef in fill:#e0e7ff,stroke:#3730a3,color:#000
-    classDef conv fill:#dbeafe,stroke:#1d4ed8,color:#000
-    classDef fc fill:#fde68a,stroke:#b45309,color:#000
-    classDef mu fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef ls fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef stab fill:#fed7aa,stroke:#9a3412,color:#000
-    classDef noise fill:#f3f4f6,stroke:#374151,color:#000
-    classDef z fill:#bbf7d0,stroke:#15803d,color:#000
-    classDef out fill:#bbf7d0,stroke:#15803d,color:#000
-```
-
 ### Reparameterization &mdash; sampling without breaking gradients
 
-```mermaid
-flowchart LR
-    MU["μ<br/>(512)"]:::mu --> Z["z"]:::z
-    LS["log σ<br/>(512)"]:::ls --> CLAMP["clamp [-10, 10]"]:::stab --> EXP["exp()"]:::exp --> MUL["· eps"]:::mul --> Z
-    EPS["eps ~ 𝒩(0, I)<br/>(512)"]:::noise --> MUL
-    Z --> OUT["z ∈ ℝ³¹²<br/>prior sample OR encoder posterior"]:::out
-
-    classDef mu fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef ls fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef stab fill:#fed7aa,stroke:#9a3412,color:#000
-    classDef exp fill:#f3f4f6,stroke:#374151,color:#000
-    classDef mul fill:#f3f4f6,stroke:#374151,color:#000
-    classDef noise fill:#e0e7ff,stroke:#3730a3,color:#000
-    classDef z fill:#bbf7d0,stroke:#15803d,color:#000
-    classDef out fill:#bbf7d0,stroke:#15803d,color:#000
-```
+See the Python snippet below for the actual code.
 
 ### Loss &mdash; ELBO with Linear KL Annealing (prevents posterior collapse)
 
@@ -198,29 +134,7 @@ Reconstructed / Generated image ∈ [0,1]^(3×128×128)
 
 ### Training-Time vs Generation-Time Paths
 
-```mermaid
-flowchart TB
-    subgraph TRAIN["Training path"]
-        direction TB
-        X1["Real image x"]:::in --> ENC1["Encoder"]:::enc --> MU1["μ, σ"]:::mu --> Z1["z"]:::z --> DEC1["Decoder"]:::dec --> REC["x̄"]:::out
-        Z1 --> KL["KL term<br/>(annealed β)"]:::kl
-        REC --> MSE["MSE"]:::mse
-    end
-    subgraph GEN["Generation path"]
-        direction TB
-        PRIOR["z ~ 𝒩(0, I)"]:::prior --> DEC2["Decoder"]:::dec --> OUT["Generated x"]:::out
-    end
-    classDef in fill:#e0e7ff,stroke:#3730a3,color:#000
-    classDef enc fill:#dbeafe,stroke:#1d4ed8,color:#000
-    classDef dec fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef mu fill:#fce7f3,stroke:#9d174d,color:#000
-    classDef z fill:#bbf7d0,stroke:#15803d,color:#000
-    classDef out fill:#bbf7d0,stroke:#15803d,color:#000
-    classDef kl fill:#fed7aa,stroke:#9a3412,color:#000
-    classDef mse fill:#fde68a,stroke:#b45309,color:#000
-    classDef prior fill:#e0e7ff,stroke:#3730a3,color:#000
-```
-
+See the Loss section above and ASCII Encoder/Decoder code below.
 
       │
 ┌─────▼──────────────────────────────────────────────────────────┐
