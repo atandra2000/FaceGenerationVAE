@@ -6,8 +6,7 @@
 > **Project:** `Vision/FaceGenerationVAE/` · **Type:** β-VAE
 > **Task:** 128×128 face generation from 512-dim latent
 > **Hardware:** NVIDIA P100 16GB · **Status:** complete (50 epochs)
-> **Architecture detail:** see `README.md §11`; cross-project guidance at
-> `.agents/skills/generative-vision-gans-vaes/SKILL.md §3`.
+> **Architecture detail:** see `README.md §11`.
 
 ## 1. Subagent: `vae-debugger`
 
